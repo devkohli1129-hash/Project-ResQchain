@@ -1,0 +1,236 @@
+<<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ResQChain</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Marker Cluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<!-- Routing -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"/>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+<!-- Heatmap -->
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+<style>
+body{font-family:Inter,sans-serif;background:#f8fafc}
+body.dark{background:#0f172a;color:#e5e7eb}
+header{position:fixed;top:0;width:100%;z-index:5000;background:white}
+body.dark header{background:#020617}
+#map{height:420px;border-radius:16px}
+.card{background:white;border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.08)}
+body.dark .card{background:#020617}
+#recenterBtn{z-index:3000}
+.modal{z-index:6000}
+
+/* markers */
+.pulse{width:14px;height:14px;border-radius:50%;position:relative}
+.pulse::after{content:"";position:absolute;inset:0;border-radius:50%;animation:pulse 1.5s infinite}
+.user{background:#2563eb}
+.hospital{background:#dc2626}
+.pharmacy{background:#16a34a}
+.shelter{background:#ea580c}
+.user::after,.hospital::after,.pharmacy::after,.shelter::after{background:inherit}
+@keyframes pulse{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.5);opacity:0}}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <div class="relative">
+      <button id="profileBtn" class="flex items-center gap-2">
+        <div class="w-9 h-9 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold">U</div>
+        <span id="profileName" class="font-semibold">User</span>
+      </button>
+      <div id="profileMenu" class="hidden absolute left-0 mt-3 w-48 bg-white rounded-xl shadow border">
+        <button onclick="openProfile()" class="block w-full px-4 py-2 text-left hover:bg-slate-100">Edit Profile</button>
+        <button onclick="openSettings()" class="block w-full px-4 py-2 text-left hover:bg-slate-100">Settings</button>
+      </div>
+    </div>
+    <h1 class="text-xl font-bold">🚨 ResQChain</h1>
+  </div>
+</header>
+
+<main class="pt-28 max-w-7xl mx-auto px-6 space-y-14">
+
+<div id="alerts" class="card p-6 text-lg font-semibold text-center">
+  Checking live disaster status…
+</div>
+
+<button id="heatToggle" class="px-4 py-2 bg-orange-600 text-white rounded">
+  🔥 Toggle Heat Map
+</button>
+
+<div class="relative">
+  <div id="map"></div>
+  <button id="recenterBtn"
+    class="absolute bottom-4 right-4 bg-white shadow rounded-full w-11 h-11 flex items-center justify-center">
+    📍
+  </button>
+</div>
+
+<div class="grid md:grid-cols-3 gap-6">
+  <div class="card p-4"><h3 class="font-bold mb-2">🏥 Hospitals</h3><div id="hospitals"></div></div>
+  <div class="card p-4"><h3 class="font-bold mb-2">💊 Medicine Shops</h3><div id="medicine"></div></div>
+  <div class="card p-4"><h3 class="font-bold mb-2">🏠 Shelters</h3><div id="shelters"></div></div>
+</div>
+
+<!-- REQUEST SHELTER -->
+<div class="card p-8">
+  <form id="requestForm" class="space-y-3 max-w-xl mx-auto">
+    <input class="w-full p-3 border rounded" placeholder="Full Name" required>
+    <input class="w-full p-3 border rounded" placeholder="Phone Number" required>
+    <select id="shelterSelect" class="w-full p-3 border rounded" required>
+      <option value="">Select Nearby Shelter</option>
+    </select>
+    <button class="w-full bg-orange-600 text-white py-3 rounded font-bold">Request Shelter</button>
+  </form>
+</div>
+
+</main>
+
+<!-- PROFILE -->
+<div id="profileModal" class="modal hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+  <div class="bg-white p-6 rounded-xl w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4">Edit Profile</h2>
+    <input id="nameInput" class="w-full p-3 border rounded mb-2" placeholder="Name">
+    <input id="phoneInput" class="w-full p-3 border rounded mb-2" placeholder="Phone">
+    <textarea id="addressInput" class="w-full p-3 border rounded mb-4" placeholder="Address"></textarea>
+    <button onclick="saveProfile()" class="bg-orange-600 text-white px-4 py-2 rounded">Save</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsModal" class="modal hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+  <div class="bg-white p-6 rounded-xl w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4">Settings</h2>
+    <label class="flex items-center gap-2">
+      <input type="checkbox" id="darkToggle"> Enable Dark Mode
+    </label>
+    <button onclick="closeSettings()" class="mt-4 bg-orange-600 text-white px-4 py-2 rounded">Close</button>
+  </div>
+</div>
+
+<script>
+profileBtn.onclick=()=>profileMenu.classList.toggle("hidden");
+function openProfile(){profileMenu.classList.add("hidden");profileModal.classList.remove("hidden")}
+function saveProfile(){profileName.textContent=nameInput.value||"User";profileModal.classList.add("hidden")}
+function openSettings(){profileMenu.classList.add("hidden");settingsModal.classList.remove("hidden")}
+function closeSettings(){settingsModal.classList.add("hidden")}
+darkToggle.onchange=()=>document.body.classList.toggle("dark",darkToggle.checked);
+
+function icon(cls){return L.divIcon({html:`<div class="pulse ${cls}"></div>`,className:"",iconSize:[14,14]});}
+function dist(a,b,c,d){
+  const R=6371;
+  const dLat=(c-a)*Math.PI/180,dLon=(d-b)*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+navigator.geolocation.getCurrentPosition(async pos=>{
+  const lat=pos.coords.latitude,lon=pos.coords.longitude;
+
+  /* LIVE STATUS FROM YOUR API */
+  try{
+    const r=await fetch(`http://localhost:8000/live-alerts?lat=${lat}&lon=${lon}`);
+    const d=await r.json();
+    alerts.innerHTML=d.status==="alert" ? `⚠️ ${d.message}` : `✅ ${d.message}`;
+  }catch{
+    alerts.innerHTML="⚠️ Unable to fetch live alerts";
+  }
+
+  const map=L.map("map").setView([lat,lon],13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+  L.marker([lat,lon],{icon:icon("user")}).addTo(map);
+  recenterBtn.onclick=()=>map.setView([lat,lon],14);
+
+  const cluster=L.markerClusterGroup();
+  const heat=[];
+
+  const query=`[out:json];(
+    node["amenity"="hospital"](around:30000,${lat},${lon});
+    node["amenity"="pharmacy"](around:30000,${lat},${lon});
+    node["shop"="chemist"](around:30000,${lat},${lon});
+    node["amenity"="school"](around:50000,${lat},${lon});
+    node["amenity"="community_centre"](around:30000,${lat},${lon});
+  );out center tags;`;
+
+  const data=(await (await fetch("https://overpass.kumi.systems/api/interpreter?data="+encodeURIComponent(query))).json()).elements;
+
+  data.forEach(x=>{
+    const la=x.lat||x.center.lat,lo=x.lon||x.center.lon;
+    x.d=dist(lat,lon,la,lo);
+  });
+  data.sort((a,b)=>a.d-b.d);
+
+  function render(id,items,cls,isShelter=false){
+    const el=document.getElementById(id);el.innerHTML="";
+    items.slice(0,6).forEach(i=>{
+      const la=i.lat||i.center.lat,lo=i.lon||i.center.lon;
+      el.innerHTML+=`
+        <div class="mb-2">
+          <b>${i.tags?.name||"Location"}</b> (${i.d.toFixed(1)} km)<br>
+          <a class="text-blue-600 underline" target="_blank"
+          href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lon}&destination=${la},${lo}">
+          Get directions</a>
+        </div>`;
+      cluster.addLayer(L.marker([la,lo],{icon:icon(cls)}));
+      if(isShelter){
+        heat.push([la,lo,4.0]); // 🔥 STRONG INTENSITY
+        shelterSelect.innerHTML+=`<option value="${la},${lo}">${i.tags?.name||"Shelter"}</option>`;
+      }
+    });
+  }
+
+  render("hospitals",data.filter(d=>d.tags?.amenity==="hospital"),"hospital");
+  render("medicine",data.filter(d=>d.tags?.amenity==="pharmacy"||d.tags?.shop==="chemist"),"pharmacy");
+  render("shelters",data.filter(d=>["school","community_centre"].includes(d.tags?.amenity)),"shelter",true);
+
+  map.addLayer(cluster);
+
+  const heatLayer=L.heatLayer(heat,{
+    radius:70,
+    blur:50,
+    maxZoom:13,
+    gradient:{
+      0.2:"blue",
+      0.4:"lime",
+      0.6:"yellow",
+      0.8:"orange",
+      1.0:"red"
+    }
+  });
+
+  let heatOn=false;
+  heatToggle.onclick=()=>{heatOn?map.removeLayer(heatLayer):map.addLayer(heatLayer);heatOn=!heatOn};
+
+  let route;
+  shelterSelect.onchange=e=>{
+    if(route)map.removeControl(route);
+    const [a,b]=e.target.value.split(",");
+    route=L.Routing.control({
+      waypoints:[L.latLng(lat,lon),L.latLng(a,b)],
+      addWaypoints:false
+    }).addTo(map);
+  };
+});
+</script>
+
+</body>
+</html>
+

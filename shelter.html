@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResQchain Provider Portal | Shelter Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-bg': '#f5f5f4',
+                        'secondary-bg': '#ffffff',
+                        'text-primary': '#292524',
+                        'accent': '#b45309',
+                        'accent-dark': '#78350f',
+                        'accent-light': '#fef3c7',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Consolas', 'Menlo', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f5f5f4;
+            color: #292524;
+            min-height: 100vh;
+        }
+
+        .loading-text {
+            color: #b45309;
+            font-weight: 600;
+        }
+
+        .card-panel {
+            background-color: #ffffff;
+            border: 1px solid #e7e5e4;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                        0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+
+        .input-control {
+            background-color: #ffffff;
+            border: 1px solid #d6d3d1;
+            color: #292524;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .input-control:focus {
+            border-color: #b45309;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.2);
+        }
+
+        .btn-accent {
+            background-color: #b45309;
+            color: #ffffff;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        .btn-accent:hover {
+            background-color: #78350f;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(120, 53, 15, 0.4);
+        }
+
+        .nav-link {
+            transition: all 0.2s;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+            color: #57534e;
+        }
+        .nav-link:hover {
+            background-color: #fef3c7;
+            color: #78350f;
+        }
+        .nav-link.active {
+            border-color: #b45309;
+            background-color: #fef3c7;
+            font-weight: 600;
+            color: #78350f;
+        }
+
+        .request-header {
+            display: grid;
+            grid-template-columns: 0.1fr 1.5fr 1.5fr 1.5fr 1fr 1fr;
+            gap: 1rem;
+            padding: 0.75rem 0.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            color: #78350f;
+            border-bottom: 2px solid #b45309;
+        }
+        .request-row {
+            display: grid;
+            grid-template-columns: 0.1fr 1.5fr 1.5fr 1.5fr 1fr 1fr;
+            gap: 1rem;
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid #e7e5e4;
+            align-items: center;
+        }
+        .request-row:nth-child(even) {
+            background-color: #fafaf9;
+        }
+
+        .status-Pending { background-color: #fef3c7; color: #b45309; }
+        .status-InProcess { background-color: #fef2f2; color: #dc2626; }
+        .status-Packed { background-color: #d1fae5; color: #059669; }
+        .delivery-Delivered { background-color: #10b981; color: #ffffff; }
+        .delivery-NotSent { background-color: #f9fafb; color: #374151; border: 1px solid #d1d5db; }
+    </style>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap">
+</head>
+<body class="font-sans">
+
+    <div id="loading-screen" class="fixed inset-0 bg-primary-bg flex flex-col items-center justify-center z-50 transition-opacity duration-500">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-accent"></div>
+        <p class="mt-4 loading-text text-lg tracking-widest">CONNECTING RESQCHAIN...</p>
+    </div>
+
+    <div id="app-container" class="opacity-0 transition-opacity duration-500 flex min-h-screen">
+
+        <nav id="sidebar" class="w-64 bg-secondary-bg p-4 flex flex-col justify-between border-r border-gray-200 shadow-lg">
+            <div>
+                <div class="mb-8 pb-4 border-b border-gray-300">
+                    <h1 class="text-xl font-bold text-accent tracking-wider">RESQCHAIN</h1>
+                    <p class="text-xs text-gray-500">Provider Console</p>
+                    <div id="auth-status" class="mt-2 text-sm text-text-primary">
+                        <span id="display-facility-name" class="font-semibold">Loading Facility...</span>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <div id="nav-dashboard" class="nav-link active p-3 rounded-lg" data-section="dashboard">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            Facility Status
+                        </span>
+                    </div>
+                    <div id="nav-inventory" class="nav-link p-3 rounded-lg" data-section="inventory">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7L4 7M4 7l4-4M4 7l4 4M20 7l-4 4M20 7l-4-4M4 17h16M4 17l4 4M4 17l4-4M20 17l-4-4M20 17l-4 4"></path></svg>
+                            Resource Inventory
+                        </span>
+                    </div>
+                    <div id="nav-requests" class="nav-link p-3 rounded-lg" data-section="requests">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Aid Requests
+                        </span>
+                    </div>
+                    <div id="nav-alerts" class="nav-link p-3 rounded-lg" data-section="alerts">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            Broadcast Alert
+                        </span>
+                    </div>
+                    <div id="nav-profile" class="nav-link p-3 rounded-lg" data-section="profile">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.345 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Profile & Settings
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-300">
+                <a href="index.html" id="logout-btn" class="nav-link p-3 rounded-lg flex items-center text-red-600 hover:bg-red-50 hover:text-red-800">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Logout
+                </a>
+                <div id="last-update-time" class="text-xs text-accent mt-2">Last Sync: N/A</div>
+            </div>
+        </nav>
+
+        <main class="flex-1 p-4 md:p-8 overflow-y-auto max-w-6xl mx-auto w-full">
+
+            <section id="dashboard-section" class="content-section space-y-6">
+                <h2 class="text-3xl font-bold text-accent mb-6">Facility Status & Capacity</h2>
+
+                <div class="p-6 card-panel rounded-xl">
+                    <h3 class="text-xl font-semibold mb-4 text-accent">Current Status Overview</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-primary-bg rounded-lg border border-gray-300">
+                            <p class="text-sm text-gray-600">Operational Status</p>
+                            <p id="display-status" class="text-2xl font-bold mt-1 text-green-600">Loading...</p>
+                        </div>
+
+                        <div class="p-4 bg-primary-bg rounded-lg border border-gray-300">
+                            <p class="text-sm text-gray-600">Available Spots/Beds</p>
+                            <p id="display-capacity" class="text-2xl font-bold mt-1 text-accent">Loading...</p>
+                        </div>
+                    </div>
+
+                    <form id="status-capacity-form" class="mt-6 space-y-4">
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-text-primary mb-1">Operational Status</label>
+                            <select id="status" name="status" class="w-full p-2 rounded-lg input-control">
+                                <option value="Operational">Operational (Full Service)</option>
+                                <option value="Limited Capacity">Limited Capacity (Partial Service)</option>
+                                <option value="Critical">Critical (High Demand)</option>
+                                <option value="Closed">Temporarily Closed</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="capacity" class="block text-sm font-medium text-text-primary mb-1">Available Spots/Beds (Numeric)</label>
+                            <input type="number" id="capacity" name="capacity" min="0" required class="w-full p-2 rounded-lg input-control" placeholder="e.g., 50">
+                        </div>
+
+                        <button type="submit" class="btn-accent w-full py-2 rounded-lg">Update Status & Capacity</button>
+                    </form>
+                </div>
+            </section>
+
+            <section id="inventory-section" class="content-section hidden space-y-6">
+                <h2 class="text-3xl font-bold text-accent mb-6">Resource Inventory</h2>
+                <div class="p-6 card-panel rounded-xl">
+                    <h3 class="text-xl font-semibold mb-4 text-accent">Stock Management</h3>
+                    <form id="inventory-form" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="water" class="block text-sm font-medium text-text-primary mb-1">Water Bottles (Units)</label>
+                                <input type="number" id="water" name="water" min="0" required class="w-full p-2 rounded-lg input-control" placeholder="Current Stock">
+                            </div>
+                            <div>
+                                <label for="meals" class="block text-sm font-medium text-text-primary mb-1">Ready-to-Eat Meals</label>
+                                <input type="number" id="meals" name="meals" min="0" required class="w-full p-2 rounded-lg input-control" placeholder="Current Stock">
+                            </div>
+                            <div>
+                                <label for="fuel" class="block text-sm font-medium text-text-primary mb-1">Fuel (Liters/Units)</label>
+                                <input type="number" id="fuel" name="fuel" min="0" required class="w-full p-2 rounded-lg input-control" placeholder="Current Stock">
+                            </div>
+                            <div>
+                                <label for="medical_kits" class="block text-sm font-medium text-text-primary mb-1">First Aid/Medical Kits</label>
+                                <input type="number" id="medical_kits" name="medical_kits" min="0" required class="w-full p-2 rounded-lg input-control" placeholder="Current Stock">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-accent w-full py-2 rounded-lg">Update Inventory Stock</button>
+                    </form>
+                </div>
+            </section>
+
+            <section id="requests-section" class="content-section hidden space-y-6">
+                <h2 class="text-3xl font-bold text-accent mb-6">Pending Aid Requests</h2>
+
+                <div class="p-6 card-panel rounded-xl">
+                    <h3 class="text-xl font-semibold mb-3 text-accent">Live Request Queue</h3>
+                    <button id="demo-request-btn" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition duration-200 mb-6">
+                        + Add Demo Aid Request (Simulate New Need)
+                    </button>
+
+                    <div id="requests-table" class="bg-secondary-bg rounded-lg shadow-inner overflow-x-auto">
+                        <div class="request-header hidden md:grid">
+                            <div>#</div>
+                            <div>Needy Name</div>
+                            <div>Address</div>
+                            <div>Items Requested</div>
+                            <div>Packing Status</div>
+                            <div>Delivery</div>
+                        </div>
+                        <div id="requests-list" class="space-y-1 p-2 md:p-0">
+                            <p class="text-gray-500 italic p-2 md:p-4 text-center">No active aid requests currently awaiting confirmation.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 card-panel rounded-xl mt-6">
+                    <h3 class="text-xl font-bold text-red-600 mb-4">Inventory Required: TO PREPARE</h3>
+                    <div id="inventory-summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    </div>
+                </div>
+            </section>
+
+            <section id="alerts-section" class="content-section hidden space-y-6">
+                <h2 class="text-3xl font-bold text-red-700 mb-6">Emergency Alert Broadcast</h2>
+
+                <div class="p-6 card-panel rounded-xl">
+                    <h3 class="text-xl font-semibold mb-4 text-red-700">Broadcast Critical Message to Public</h3>
+                    <div class="space-y-4">
+                        <textarea id="alert-message" class="w-full p-3 rounded-lg input-control focus:ring-red-500 focus:border-red-500" rows="4" placeholder="Type a critical alert (e.g., 'Evacuation order issued for sector 4.')."></textarea>
+                        <button id="send-alert-btn" class="w-full py-2 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg transition duration-200">Broadcast Critical Alert</button>
+                        <div id="active-alert-display" class="p-3 mt-4 bg-red-100 border-l-4 border-red-500 rounded-md">
+                            <p class="text-sm font-bold text-red-700">Active Global Broadcast:</p>
+                            <p id="alert-text" class="text-red-900 italic mt-1 text-sm">No critical alerts currently broadcast.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="profile-section" class="content-section hidden space-y-6">
+                <h2 class="text-3xl font-bold text-accent mb-6">Provider Profile & Settings</h2>
+
+                <div class="p-6 card-panel rounded-xl">
+                    <h3 class="text-xl font-semibold mb-4 text-accent">Facility Identity</h3>
+
+                    <div class="mb-6 p-4 bg-primary-bg rounded-lg border border-gray-300">
+                        <p class="text-sm text-gray-600">Unique Provider ID (Read-Only)</p>
+                        <p id="display-provider-id" class="font-mono text-sm mt-1 text-text-primary break-all">Loading...</p>
+                    </div>
+
+                    <form id="profile-form" class="space-y-4">
+                        <div>
+                            <label for="facility-name" class="block text-sm font-medium text-text-primary mb-1">Facility Name</label>
+                            <input type="text" id="facility-name" name="facility-name" required class="w-full p-2 rounded-lg input-control" placeholder="e.g., ResQ Hub Delta">
+                        </div>
+
+                        <div>
+                            <label for="facility-address" class="block text-sm font-medium text-text-primary mb-1">Facility Address</label>
+                            <input type="text" id="facility-address" name="facility-address" required class="w-full p-2 rounded-lg input-control" placeholder="e.g., Sector 4, Main Road, City">
+                        </div>
+
+                        <div>
+                            <label for="contact-info" class="block text-sm font-medium text-text-primary mb-1">Contact Email / Phone</label>
+                            <input type="text" id="contact-info" name="contact-info" required class="w-full p-2 rounded-lg input-control" placeholder="e.g., contact@facility.org">
+                        </div>
+
+                        <button type="submit" class="btn-accent w-full py-2 rounded-lg">Update Profile Settings</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+
+        <div id="message-box" class="fixed bottom-4 right-4 p-3 rounded-lg text-sm bg-accent text-white shadow-xl opacity-0 transition-opacity duration-300"></div>
+
+    </div>
+
+    <script>
+        const INITIAL_DATA = {
+            status: 'Operational',
+            capacity: 100,
+            inventory: { water_bottles: 500, meals_ready: 250, fuel: 50, medical_kits: 15 },
+            lastUpdated: new Date().toISOString(),
+            facilityName: 'ResQ Hub Delta',
+            contactInfo: 'provider.delta@resq.org',
+            facilityAddress: 'SRMIST, KATHANKULATHUR, TAMIL NADU'
+        };
+        const INITIAL_ALERT = { message: '', isActive: false, timestamp: null };
+
+        const STORAGE_KEY_SHELTER = 'resqchain_provider_data_v1';
+        const STORAGE_KEY_ALERT = 'resqchain_alert_data_v1';
+        const STORAGE_KEY_REQUESTS = 'resqchain_requests_data_v1';
+
+        function loadShelterData() {
+            const raw = localStorage.getItem(STORAGE_KEY_SHELTER);
+            return raw ? JSON.parse(raw) : { ...INITIAL_DATA };
+        }
+        function saveShelterData() {
+            localStorage.setItem(STORAGE_KEY_SHELTER, JSON.stringify(shelterData));
+        }
+
+        function loadAlertData() {
+            const raw = localStorage.getItem(STORAGE_KEY_ALERT);
+            return raw ? JSON.parse(raw) : { ...INITIAL_ALERT };
+        }
+        function saveAlertData() {
+            localStorage.setItem(STORAGE_KEY_ALERT, JSON.stringify(alertData));
+        }
+
+        function loadRequestsData() {
+            const raw = localStorage.getItem(STORAGE_KEY_REQUESTS);
+            return raw ? JSON.parse(raw) : [];
+        }
+        function saveRequestsData() {
+            localStorage.setItem(STORAGE_KEY_REQUESTS, JSON.stringify(requestsData));
+        }
+
+        let shelterData = loadShelterData();
+        let alertData = loadAlertData();
+        let requestsData = loadRequestsData();
+
+        const loadingScreen = document.getElementById('loading-screen');
+        const appContainer = document.getElementById('app-container');
+        const displayFacilityNameSpan = document.getElementById('display-facility-name');
+        const lastUpdateTimeSpan = document.getElementById('last-update-time');
+        const messageBox = document.getElementById('message-box');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.content-section');
+
+        const demoRequestBtn = document.getElementById('demo-request-btn');
+        const requestsList = document.getElementById('requests-list');
+        const inventorySummary = document.getElementById('inventory-summary');
+
+        function showMessage(text) {
+            messageBox.textContent = text;
+            messageBox.style.opacity = '1';
+            setTimeout(() => {
+                messageBox.style.opacity = '0';
+            }, 3000);
+        }
+
+        function changeSection(sectionName) {
+            contentSections.forEach(section => section.classList.add('hidden'));
+            document.getElementById(sectionName + '-section').classList.remove('hidden');
+
+            navLinks.forEach(link => {
+                if (link.dataset.section === sectionName) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            if (sectionName === 'requests') {
+                renderRequests(requestsData);
+            }
+        }
+
+        function dismissLoadingScreen(delay = 500) {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                appContainer.style.opacity = '1';
+            }, delay);
+        }
+
+        function calculateInventorySummary(requests) {
+            const summary = {};
+            requests.forEach(req => {
+                if (req.deliveryStatus !== 'Delivered') {
+                    req.items.forEach(item => {
+                        summary[item.name] = (summary[item.name] || 0) + item.quantity;
+                    });
+                }
+            });
+
+            inventorySummary.innerHTML = '';
+            const itemNames = Object.keys(summary).sort();
+
+            if (itemNames.length === 0) {
+                inventorySummary.innerHTML =
+                    '<p class="text-gray-500 italic text-center col-span-4">All pending requests are either packed or delivered.</p>';
+                return;
+            }
+
+            itemNames.forEach(name => {
+                const count = summary[name];
+                inventorySummary.innerHTML += `
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                        <p class="text-xs text-red-700 font-semibold uppercase">${name}</p>
+                        <p class="text-2xl font-bold text-red-900 mt-1">${count}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function renderRequests(requests) {
+            requestsList.innerHTML = '';
+
+            const headerEl = document
+                .getElementById('requests-table')
+                .querySelector('.request-header');
+
+            if (requests.length === 0) {
+                requestsList.innerHTML =
+                    '<p class="text-gray-500 italic p-4 text-center">No active aid requests currently awaiting confirmation.</p>';
+                headerEl.classList.add('hidden');
+                document.getElementById('inventory-summary').innerHTML =
+                    '<p class="text-gray-500 italic text-center col-span-4">No pending requests to calculate inventory for.</p>';
+                return;
+            }
+
+            headerEl.classList.remove('hidden');
+
+            requests.forEach((req, index) => {
+                const itemHtml = req.items.map(item =>
+                    `<span class="block text-xs text-gray-700">${item.name}: <span class="font-bold">${item.quantity}</span></span>`
+                ).join('');
+
+                const isDelivered = req.deliveryStatus === 'Delivered';
+                const statusClass = 'status-' + req.status.replace(/\s/g, '');
+                const deliveryClass = isDelivered ? 'delivery-Delivered' : 'delivery-NotSent';
+
+                const statusButtonText = isDelivered ? 'PACKED (DONE)' : req.status.toUpperCase();
+                const deliveryButtonText = isDelivered ? 'DELIVERED (Remove)' : 'MARK DELIVERED';
+
+                const reqEl = document.createElement('div');
+                reqEl.className = 'request-row text-sm';
+                reqEl.innerHTML = `
+                    <div class="font-bold text-gray-500">${index + 1}</div>
+                    <div>
+                        <p class="font-semibold">${req.needyName}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Priority: ${req.priority}</p>
+                    </div>
+                    <div class="text-gray-600 text-xs">${req.address}</div>
+                    <div class="space-y-1">${itemHtml}</div>
+
+                    <div>
+                        <button data-id="${req.id}" data-status="${req.status}" ${isDelivered ? 'disabled' : ''}
+                            class="status-btn w-full p-2 text-xs rounded-md font-bold transition duration-200 ${statusClass} ${isDelivered ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}">
+                            ${statusButtonText}
+                        </button>
+                    </div>
+
+                    <div>
+                        <button data-id="${req.id}" data-delivery="${req.deliveryStatus}"
+                            class="delivery-btn w-full p-2 text-xs rounded-md font-bold ${deliveryClass} hover:opacity-80">
+                            ${deliveryButtonText}
+                        </button>
+                    </div>
+                `;
+                requestsList.appendChild(reqEl);
+            });
+
+            calculateInventorySummary(requests);
+
+            document.querySelectorAll('.status-btn').forEach(button => {
+                button.addEventListener('click', e => {
+                    const btn = e.target.closest('button');
+                    if (btn.disabled) return;
+
+                    const id = btn.dataset.id;
+                    const currentStatus = btn.dataset.status;
+
+                    const statusMap = {
+                        'Pending': 'In Process',
+                        'In Process': 'Packed',
+                        'Packed': 'Pending'
+                    };
+                    const nextStatus = statusMap[currentStatus] || 'Pending';
+
+                    const idx = requestsData.findIndex(r => r.id === id);
+                    if (idx !== -1) {
+                        requestsData[idx].status = nextStatus;
+                        saveRequestsData();
+                        showMessage('Request ' + id.substring(0, 4) + ' status updated to: ' + nextStatus);
+                        renderRequests(requestsData);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delivery-btn').forEach(button => {
+                button.addEventListener('click', e => {
+                    const btn = e.target.closest('button');
+                    const id = btn.dataset.id;
+                    const currentDelivery = btn.dataset.delivery;
+
+                    const isMarkingDelivered = currentDelivery !== 'Delivered';
+
+                    const idx = requestsData.findIndex(r => r.id === id);
+                    if (idx !== -1) {
+                        if (isMarkingDelivered) {
+                            requestsData[idx].deliveryStatus = 'Delivered';
+                            saveRequestsData();
+                            showMessage(
+                                'Request ' + id.substring(0, 4) +
+                                ' delivery marked as: DELIVERED. Removing from queue in 1.5s...'
+                            );
+                            renderRequests(requestsData);
+                            setTimeout(() => {
+                                requestsData = requestsData.filter(r => r.id !== id);
+                                saveRequestsData();
+                                renderRequests(requestsData);
+                            }, 1500);
+                        } else {
+                            requestsData[idx].deliveryStatus = 'Not Sent';
+                            saveRequestsData();
+                            showMessage('Request ' + id.substring(0, 4) + ' delivery marked as: Not Sent');
+                            renderRequests(requestsData);
+                        }
+                    }
+                });
+            });
+        }
+
+        function addDemoAidRequest() {
+            const names = ['A. Smith', 'B. Jones', 'C. Kim', 'D. Garcia', 'E. Chen'];
+            const addresses = ['Sector A, Block 4', '123 Main St, Zone 1', 'Near River Bridge', 'Temporary Shelter Beta'];
+            const priorities = ['High', 'Medium', 'Low'];
+            const itemOptions = [
+                { name: 'Water Bottles', min: 10, max: 50 },
+                { name: 'Ready-to-Eat Meals', min: 20, max: 100 },
+                { name: 'First Aid Kits', min: 1, max: 5 },
+                { name: 'Fuel', min: 2, max: 10 }
+            ];
+
+            const selectedItems = [];
+            const numItems = Math.floor(Math.random() * 2) + 2;
+            const shuffledItems = [...itemOptions].sort(() => 0.5 - Math.random());
+
+            for (let i = 0; i < numItems; i++) {
+                const option = shuffledItems[i];
+                selectedItems.push({
+                    name: option.name,
+                    quantity: Math.floor(Math.random() * (option.max - option.min + 1)) + option.min
+                });
+            }
+
+            const newRequest = {
+                id: crypto.randomUUID(),
+                needyName: names[Math.floor(Math.random() * names.length)],
+                address: addresses[Math.floor(Math.random() * addresses.length)],
+                priority: priorities[Math.floor(Math.random() * priorities.length)],
+                items: selectedItems,
+                status: 'Pending',
+                deliveryStatus: 'Not Sent',
+                timestamp: new Date().toISOString()
+            };
+
+            requestsData.unshift(newRequest);
+            saveRequestsData();
+            renderRequests(requestsData);
+            showMessage('New request for ' + newRequest.needyName + ' added (Frontend Demo).');
+        }
+
+        function renderShelterData() {
+            const data = shelterData;
+
+            const statusText = data.status || 'Unknown';
+            const displayStatus = document.getElementById('display-status');
+            const displayCapacity = document.getElementById('display-capacity');
+            const capacityInput = document.getElementById('capacity');
+            const statusSelect = document.getElementById('status');
+
+            displayStatus.textContent = statusText;
+            displayStatus.className =
+                'text-2xl font-bold mt-1 ' +
+                (statusText === 'Operational'
+                    ? 'text-green-600'
+                    : statusText === 'Limited Capacity'
+                        ? 'text-yellow-700'
+                        : statusText === 'Critical'
+                            ? 'text-red-700'
+                            : 'text-gray-500');
+
+            displayCapacity.textContent =
+                data.capacity !== undefined ? data.capacity + ' Available' : 'N/A';
+            capacityInput.value = data.capacity !== undefined ? data.capacity : '';
+            statusSelect.value = statusText;
+
+            if (data.inventory) {
+                document.getElementById('water').value = data.inventory.water_bottles || 0;
+                document.getElementById('meals').value = data.inventory.meals_ready || 0;
+                document.getElementById('fuel').value = data.inventory.fuel || 0;
+                document.getElementById('medical_kits').value = data.inventory.medical_kits || 0;
+            }
+
+            if (data.lastUpdated) {
+                const date = new Date(data.lastUpdated);
+                lastUpdateTimeSpan.textContent = 'Last Sync: ' + date.toLocaleTimeString();
+            }
+
+            displayFacilityNameSpan.textContent = data.facilityName || 'Provider Facility';
+            document.getElementById('facility-name').value = data.facilityName || '';
+            document.getElementById('contact-info').value = data.contactInfo || '';
+            document.getElementById('facility-address').value = data.facilityAddress || '';
+        }
+
+        function renderAlertData() {
+            const alertTextDisplay = document.getElementById('alert-text');
+            if (alertData.isActive && alertData.message) {
+                alertTextDisplay.textContent = alertData.message;
+                alertTextDisplay.classList.remove('italic', 'text-sm');
+            } else {
+                alertTextDisplay.textContent = 'No critical alerts currently broadcast.';
+                alertTextDisplay.classList.add('italic', 'text-sm');
+            }
+        }
+
+        window.onload = () => {
+            document.getElementById('display-provider-id').textContent = crypto.randomUUID();
+            renderShelterData();
+            renderAlertData();
+            renderRequests(requestsData);
+            dismissLoadingScreen();
+        };
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', e => {
+                const section = e.currentTarget.dataset.section;
+                changeSection(section);
+            });
+        });
+
+        demoRequestBtn.addEventListener('click', addDemoAidRequest);
+
+        document.getElementById('status-capacity-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const capacityInput = document.getElementById('capacity');
+            const statusSelect = document.getElementById('status');
+            const status = statusSelect.value;
+            const capacity = parseInt(capacityInput.value, 10);
+            if (isNaN(capacity) || capacity < 0) {
+                showMessage('Capacity must be a non-negative number.');
+                return;
+            }
+            shelterData.status = status;
+            shelterData.capacity = capacity;
+            shelterData.lastUpdated = new Date().toISOString();
+            saveShelterData();
+            renderShelterData();
+            showMessage('Data saved (frontend only).');
+        });
+
+        document.getElementById('inventory-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const water = parseInt(document.getElementById('water').value, 10) || 0;
+            const meals = parseInt(document.getElementById('meals').value, 10) || 0;
+            const fuel = parseInt(document.getElementById('fuel').value, 10) || 0;
+            const medical_kits = parseInt(document.getElementById('medical_kits').value, 10) || 0;
+
+            shelterData.inventory = {
+                water_bottles: water,
+                meals_ready: meals,
+                fuel: fuel,
+                medical_kits: medical_kits
+            };
+            shelterData.lastUpdated = new Date().toISOString();
+            saveShelterData();
+            renderShelterData();
+            showMessage('Inventory updated (frontend only).');
+        });
+
+        document.getElementById('profile-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const facilityName = document.getElementById('facility-name').value.trim();
+            const facilityAddress = document.getElementById('facility-address').value.trim();
+            const contactInfo = document.getElementById('contact-info').value.trim();
+
+            if (!facilityName || !contactInfo || !facilityAddress) {
+                showMessage('All profile fields must be filled out.');
+                return;
+            }
+
+            shelterData.facilityName = facilityName;
+            shelterData.facilityAddress = facilityAddress;
+            shelterData.contactInfo = contactInfo;
+            shelterData.lastUpdated = new Date().toISOString();
+            saveShelterData();
+            renderShelterData();
+            showMessage('Profile updated (frontend only).');
+        });
+
+        document.getElementById('send-alert-btn').addEventListener('click', () => {
+            const message = document.getElementById('alert-message').value.trim();
+            if (!message) {
+                showMessage('Alert message cannot be empty.');
+                return;
+            }
+            alertData.message = message;
+            alertData.isActive = true;
+            alertData.timestamp = new Date().toISOString();
+            saveAlertData();
+            document.getElementById('alert-message').value = '';
+            renderAlertData();
+            showMessage('CRITICAL ALERT broadcast on this device.');
+        });
+    </script>
+</body>
+</html>
